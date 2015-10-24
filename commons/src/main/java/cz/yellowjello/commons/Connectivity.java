@@ -9,8 +9,6 @@ import android.os.Build;
 import android.support.annotation.Nullable;
 import android.telephony.TelephonyManager;
 
-import cz.master.annie.app.Const;
-
 public class Connectivity {
 
 	public static final byte NOT_REACHABLE = 0;
