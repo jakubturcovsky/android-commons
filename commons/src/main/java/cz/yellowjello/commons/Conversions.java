@@ -11,18 +11,19 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.StringTokenizer;
 
 public class Conversions {
 
-	// objs
-	final private static String SMILEY_DELIM = "^_^";
 	final private static char[] hexArray = "0123456789ABCDEF".toCharArray();
 
 
-	// hex to byte array
+	/**
+	 * Converts byte array to the String of hex characters
+	 *
+	 * @param bytes byte array to convert
+	 *
+	 * @return hex String
+	 */
 	public static String byteArrayToHexString(byte[] bytes) {
 		char[] hexChars = new char[bytes.length * 2];
 		for (int j = 0; j < bytes.length; j++) {
@@ -33,6 +34,13 @@ public class Conversions {
 		return new String(hexChars);
 	}
 
+	/**
+	 * Converts hex String to the byte array
+	 *
+	 * @param s hex String to convert
+	 *
+	 * @return byte array
+	 */
 	public static byte[] hexStringToByteArray(String s) {
 		int len = s.length();
 		byte[] data = new byte[len / 2];
@@ -43,67 +51,70 @@ public class Conversions {
 		return data;
 	}
 
-	// time
-	public static Long getCurrentMilis() {
-		Calendar calendar = Calendar.getInstance();
-		return calendar.getTime().getTime();
-	}
+	/**
+	 * Converts IP address to integer
+	 *
+	 * @param address IP address in String format
+	 *
+	 * @return IP address in integer format
+	 */
+	public static int ipAddressToInt(String address) throws IllegalArgumentException {
+		int result = 0;
 
-	// parsing string
-	public static String getSmileyDelimiter() {
-		return SMILEY_DELIM;
-	}
-
-	public static byte[] getSmileyDeliminterInBytes() {
-		return getSmileyDelimiter().getBytes();
-	}
-
-	public static int getSmileyDelimiterSize() {
-		return getSmileyDelimiter().length();
-	}
-
-	public static ArrayList<String> getArrayListFromString(String srcString, String delimiter) {
-		StringTokenizer st = new StringTokenizer(srcString, delimiter);
-		ArrayList<String> tokenList = new ArrayList<String>();
-		while (st.hasMoreTokens()) {
-			tokenList.add(st.nextToken());
+		// Check validity of the String
+		if (address == null || address.length() < 7 || address.length() > 15) {
+			throw new IllegalArgumentException("Wrong length of IP address!");
 		}
-		return tokenList;
-	}
 
-	public static ArrayList<String> getArrayListFromStringWithSmileyDelimiter(String srcString) {
-		StringTokenizer st = new StringTokenizer(srcString, "^_^");
-		ArrayList<String> tokenList = new ArrayList<String>();
-		while (st.hasMoreTokens()) {
-			tokenList.add(st.nextToken());
+		// Check format of the String (should be n.n.n.n)
+		String[] tokens = address.split("\\.");
+		if (tokens.length != 4) {
+			throw new IllegalArgumentException("Invalid format of IP address!");
 		}
-		return tokenList;
-	}
 
-
-	// parsing ip address + ports
-	public static String longIpAddressToString(long addr) {
-		Long lAddr = addr;
-		StringBuilder sb = new StringBuilder(15);
-
-		for (int i = 0; i < 4; i++) {
-			sb.insert(0, Long.toString(lAddr & 0xff));
-			if (i < 3) {
-				sb.insert(0, '.');
+		for (int i = 3; i >= 0; i--) {
+			int ip = Integer.parseInt(tokens[3 - i]);
+			if (ip < 0 || ip > 255) {
+				throw new IllegalArgumentException("Invalid IP address!");
 			}
-			lAddr >>= 8;
+
+			// left shifting 24,16,8,0 and bitwise OR
+			// 1. 192 << 24
+			// 2. 168 << 16
+			// 3. 1 << 8
+			// 4. 0 << 0
+			result |= ip << (i * 8);
 		}
-		return sb.toString();
+
+		return result;
 	}
 
 	/**
-	 * Convert raw IP address to string.
+	 * Converts integer to IP address
+	 *
+	 * @param i IP address in integer format
+	 *
+	 * @return IP address in String format
+	 */
+	public static String intToIpAddress(int i) {
+		return ((i >> 24) & 0xFF) +
+				"." + ((i >> 16) & 0xFF) +
+				"." + ((i >> 8) & 0xFF) +
+				"." + (i & 0xFF);
+	}
+
+	/**
+	 * Converts raw IP address to string.
 	 *
 	 * @param rawBytes raw IP address.
 	 *
 	 * @return a string representation of the raw ip address.
 	 */
-	public static String rawIpAddressToString(@NonNull final byte[] rawBytes) {
+	public static String byteArrayToIpAddress(@NonNull final byte[] rawBytes) {
+		if (rawBytes.length != 4) {
+			throw new IllegalArgumentException("Invalid size of the input byte array.");
+		}
+
 		byte i = 4;
 		final StringBuilder ipAddress = new StringBuilder(4 * 2);
 		for (final byte raw : rawBytes) {
@@ -115,6 +126,45 @@ public class Conversions {
 
 		return ipAddress.toString();
 	}
+
+	/**
+	 * Convert a TCP/IP address string into a byte array
+	 *
+	 * @param address String
+	 *
+	 * @return byte[]
+	 */
+	public static byte[] ipAddressToByteArray(String address) throws IllegalArgumentException {
+		int addressInt = ipAddressToInt(address);
+
+		// Convert to bytes
+		byte[] ipByts = new byte[4];
+
+		ipByts[3] = (byte) (addressInt & 0xFF);
+		ipByts[2] = (byte) ((addressInt >> 8) & 0xFF);
+		ipByts[1] = (byte) ((addressInt >> 16) & 0xFF);
+		ipByts[0] = (byte) ((addressInt >> 24) & 0xFF);
+
+		return ipByts;
+	}
+
+	/**
+	 * Convert a TCP/IP address string into a byte array
+	 *
+	 * @param address String
+	 *
+	 * @return byte[]
+	 */
+	public static byte[] ipAddressToByteArray2(String address) {
+		byte[] bIP;
+
+		// ip address
+		InetSocketAddress ipa = new InetSocketAddress(address, 0);
+		bIP = ipa.getAddress().getAddress();
+
+		return bIP;
+	}
+
 
 	public static byte[] portToByteArray(int port) {
 		if (port < 0 || port > 65535) {
@@ -153,17 +203,6 @@ public class Conversions {
 
 		return bChar;
 	}
-
-	public static byte[] ipAddressToByteArray(String ipAddress) {
-		byte[] bIP;
-
-		// ip address
-		InetSocketAddress ipa = new InetSocketAddress(ipAddress, 0);
-		bIP = ipa.getAddress().getAddress();
-
-		return bIP;
-	}
-
 
 	public static InetSocketAddress byteArrayToInetSocketAddress(byte[] data) {
 		if ((data == null) || (data.length != 6)) {
@@ -293,6 +332,32 @@ public class Conversions {
 	//}
 
 	/**
+	 * Converts dp value to pixels
+	 *
+	 * @param dp - dp to convert
+	 *
+	 * @return - dp converted to Px
+	 */
+	public static int dpToPx(int dp, Context context) {
+		DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
+		int px = Math.round(dp * (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
+		return px;
+	}
+
+	/**
+	 * Converts pixels value to dp
+	 *
+	 * @param px - pixels to convert
+	 *
+	 * @return - px converted to dp
+	 */
+	public static int pxToDp(int px, Context context) {
+		DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
+		int dp = Math.round(px / (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
+		return dp;
+	}
+
+	/**
 	 * Converts Bitmap to bytes.
 	 *
 	 * @param bitmap - input Bitmap
@@ -319,33 +384,6 @@ public class Conversions {
 		Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
 
 		return bitmap;
-	}
-
-	/**
-	 * Converts dp value to pixels
-	 *
-	 * @param dp - dp to convert
-	 *
-	 * @return - dp converted to Px
-	 */
-	public static int dpToPx(int dp, Context context) {
-		DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
-		int px = Math.round(dp * (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
-		return px;
-	}
-
-
-	/**
-	 * Converts pixels value to dp
-	 *
-	 * @param px - pixels to convert
-	 *
-	 * @return - px converted to dp
-	 */
-	public static int pxToDp(int px, Context context) {
-		DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
-		int dp = Math.round(px / (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
-		return dp;
 	}
 
 
