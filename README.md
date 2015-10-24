@@ -1,2 +1,2 @@
 # android-commons
-Some useful methods for you
+Several methods that can save you some time.
