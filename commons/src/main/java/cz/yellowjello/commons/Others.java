@@ -6,7 +6,6 @@ import java.util.StringTokenizer;
 
 public class Others {
 
-
 	public static ArrayList<String> stringToArrayList(String srcString, String delimiter) {
 		StringTokenizer st = new StringTokenizer(srcString, delimiter);
 		ArrayList<String> tokenList = new ArrayList<String>();
